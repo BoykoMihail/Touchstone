@@ -85,7 +85,7 @@ public struct Assayer: Sendable {
         Reply with JSON only. No prose, no code fences, no explanation.
         The JSON must match this shape:
         \(schema)
-        Decimal amounts must be strings, for example "8.40".
+        Numbers must be numbers: write 8.40 or "8.40", never "about 8.40" or "$8.40".
         """
     }
 
@@ -104,7 +104,7 @@ public struct Assayer: Sendable {
 
         Reply again with JSON only, matching this shape exactly:
         \(schema)
-        Decimal amounts must be strings, for example "8.40".
+        Numbers must be numbers: write 8.40 or "8.40", never "about 8.40" or "$8.40".
         """
     }
 
@@ -151,8 +151,6 @@ public struct Assayer: Sendable {
             return reason
         case .notANumber(let text):
             return "\"\(text)\" is not a decimal number"
-        case .moneyWasNotAString:
-            return "a decimal amount was sent as a number; send it as a string"
         case .repairsExhausted(_, let lastReason):
             return lastReason
         }

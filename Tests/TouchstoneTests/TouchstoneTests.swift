@@ -1,25 +1,37 @@
 import Testing
 import Touchstone
+import Foundation
 import TouchstoneTesting
 
 struct Expense: Assayable, Equatable {
-    let amount: Money
+    let amount: LenientDecimal
     let category: String
 
     static let jsonSchema = """
-    { "amount": "string, decimal amount, e.g. \\"8.40\\"", "category": "string" }
+    { "amount": "decimal number, e.g. 8.40", "category": "string" }
     """
 }
 
 @Test("Decodes a clean reply into the requested type")
 func decodesCleanReply() async throws {
-    let model = FakeModel(reply: #"{"amount":"8.40","category":"food"}"#)
+    let model = FakeModel(reply: #"{"amount":8.40,"category":"food"}"#)
     let ai = Assayer(model: model)
 
     let expense = try await ai.value(Expense.self, from: "coffee, 8.40")
 
     #expect(expense.category == "food")
-    #expect(expense.amount == Money(string: "8.40"))
+    #expect(expense.amount.value == Decimal(string: "8.40"))
+}
+
+@Test("Accepts a number the model decided to send as a string")
+func acceptsStringifiedNumber() async throws {
+    // Models flip between 8.40 and "8.40" from one call to the next. Accepting
+    // both saves a repair round-trip; a plain Decimal field would fail here.
+    let ai = Assayer(model: FakeModel(reply: #"{"amount":"8.40","category":"food"}"#))
+
+    let expense = try await ai.value(Expense.self, from: "coffee")
+
+    #expect(expense.amount.value == Decimal(string: "8.40"))
 }
 
 @Test("Digs JSON out of a reply wrapped in prose and code fences")
@@ -27,7 +39,7 @@ func survivesChattyModel() async throws {
     let chatty = """
     Sure! Here's the JSON you asked for:
     ```json
-    {"amount":"8.40","category":"food"}
+    {"amount":8.40,"category":"food"}
     ```
     Let me know if you need anything else.
     """
@@ -35,23 +47,39 @@ func survivesChattyModel() async throws {
 
     let expense = try await ai.value(Expense.self, from: "coffee")
 
-    #expect(expense.amount == Money(string: "8.40"))
+    #expect(expense.amount.value == Decimal(string: "8.40"))
 }
 
 @Test("Repairs a malformed reply and tells the model what was wrong")
 func repairsMalformedReply() async throws {
     let model = FakeModel(replies: [
         .text("no idea, sorry"),
-        .text(#"{"amount":"8.40","category":"food"}"#)
+        .text(#"{"amount":8.40,"category":"food"}"#)
     ])
     let ai = Assayer(model: model)
 
     let expense = try await ai.value(Expense.self, from: "coffee")
 
-    #expect(expense.amount == Money(string: "8.40"))
+    #expect(expense.amount.value == Decimal(string: "8.40"))
     #expect(model.receivedPrompts.count == 2)
     // The second prompt must carry the reason, or the retry is just a coin flip.
     #expect(model.receivedPrompts[1].contains("no JSON"))
+}
+
+@Test("Treats a hedged number as a repairable error, not as a value")
+func repairsHedgedNumber() async throws {
+    // "about 8.40" is the interesting case: guessing what it meant is how a
+    // balance ends up wrong, so it becomes an error the model can fix.
+    let model = FakeModel(replies: [
+        .text(#"{"amount":"about 8.40","category":"food"}"#),
+        .text(#"{"amount":8.40,"category":"food"}"#)
+    ])
+    let ai = Assayer(model: model)
+
+    let expense = try await ai.value(Expense.self, from: "coffee")
+
+    #expect(expense.amount.value == Decimal(string: "8.40"))
+    #expect(model.receivedPrompts[1].contains("about 8.40"))
 }
 
 @Test("Gives up with a typed error instead of a half-built value")
@@ -64,21 +92,15 @@ func givesUpCleanly() async throws {
     }
 }
 
-@Test("Refuses a float where money was expected")
-func refusesFloatMoney() async throws {
-    // 8.4 as a JSON number has already lost precision by the time it reaches us.
-    let ai = Assayer(model: FakeModel(reply: #"{"amount":8.4,"category":"food"}"#), maximumRepairs: 0)
+@Test("Parses numeric text exactly, and refuses text that only looks numeric")
+func parsesNumbersExactly() throws {
+    let exact = try #require(LenientDecimal(string: "8.40"))
+    #expect(exact.value == Decimal(string: "8.40"))
 
-    await #expect(throws: AssayError.self) {
-        _ = try await ai.value(Expense.self, from: "coffee")
-    }
-}
-
-@Test("Money parses without going through Double")
-func moneyKeepsPrecision() throws {
-    let money = try #require(Money(string: "8.40"))
-    #expect(money.description == "8.4")
-    #expect(Money(string: "about 8.40") == nil)
+    #expect(LenientDecimal(string: "about 8.40") == nil)
+    #expect(LenientDecimal(string: "$8.40") == nil)
+    #expect(LenientDecimal(string: "8.40 EUR") == nil)
+    #expect(LenientDecimal(string: "") == nil)
 }
 
 @Test("Streams chunks in order")

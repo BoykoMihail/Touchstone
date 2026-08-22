@@ -6,11 +6,11 @@ A touchstone is the stone jewellers rub gold against to check it's really gold. 
 
 ```swift
 struct Expense: Assayable {
-    let amount: Money
+    let amount: LenientDecimal
     let category: String
 
     static let jsonSchema = """
-    { "amount": "string, decimal amount, e.g. \\"8.40\\"",
+    { "amount": "decimal number, e.g. 8.40",
       "category": "string, one of: food, transport, other" }
     """
 }
@@ -18,11 +18,11 @@ struct Expense: Assayable {
 let ai = Assayer(model: FoundationModel())
 let expense = try await ai.value(Expense.self, from: "coffee and a croissant, 8 euro 40")
 
-expense.amount.decimal   // 8.40 as Decimal — never through Double
-expense.category         // "food"
+expense.amount.value    // 8.40 as Decimal
+expense.category        // "food"
 ```
 
-No prompt engineering for the format, no hand-written JSON parsing, no `Double` anywhere near money.
+No prompt engineering for the format, no hand-written JSON parsing, no defaults papering over a bad answer.
 
 ## Why this exists
 
@@ -34,11 +34,15 @@ In practice that means four problems, and Touchstone is four answers.
 
 You describe the shape you want. Touchstone puts the format instructions in the prompt, decodes the response, and validates it. If the model returns something that doesn't decode, Touchstone re-asks it — with the decoding error included, so the second attempt is informed rather than hopeful. Retries are bounded and configurable; when they run out you get a typed error, never a half-parsed object.
 
-### 2. Money is treated like money
+### 2. Numbers stay numbers
 
-Amounts decode into `Money`, which wraps `Decimal` and is parsed from the string form. Not `Double`, not `Float`, and not a silent `0` when the model writes `"about 8.40"` — that's an error you can see and handle.
+Credit where it's due: Foundation already decodes `Decimal` from a JSON number without losing precision — `8.40` really does come back as `8.4`, not `8.400000000000000355`. The decoder is not the problem.
 
-If you've ever found a `catch { return .zero }` in a currency converter, you know why this is the second feature and not the tenth.
+The model is. Asked for an amount it writes `8.40` on one call and `"8.40"` on the next, and a plain `Decimal` field fails on the second one. Sometimes it writes `"about 8.40"` or `"$8.40"`, which is worse, because that's the point where hand-rolled parsing quietly returns zero.
+
+`LenientDecimal` accepts either form exactly, and refuses anything that merely looks numeric. Refusals become a repair attempt with the reason attached, so the model gets a chance to fix it. What you never get is a default — a silent zero in a numeric field is a lie with a clean conscience.
+
+There is no currency type here, and no rounding or formatting: that's your domain, not a library about model output.
 
 ### 3. Streaming that cancels itself
 
