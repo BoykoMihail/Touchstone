@@ -1,5 +1,7 @@
 # Touchstone
 
+[![CI](https://github.com/BoykoMihail/Touchstone/actions/workflows/ci.yml/badge.svg)](https://github.com/BoykoMihail/Touchstone/actions/workflows/ci.yml)
+
 **Typed, testable, cancellable LLM calls in Swift.**
 
 A touchstone is the stone jewellers rub gold against to check it's really gold. This library does that for model output: you declare the Swift type you expect, and Touchstone makes sure that's what you get — or gives you a clear error instead of plausible-looking garbage.
