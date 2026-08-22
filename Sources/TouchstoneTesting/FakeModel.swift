@@ -36,7 +36,7 @@ public final class FakeModel: LanguageModel, @unchecked Sendable {
         self.init(replies: [.text(reply)])
     }
 
-    public func respond(to prompt: String, options: GenerationOptions) async throws -> String {
+    public func respond(to prompt: String, options: ModelOptions) async throws -> String {
         let reply = try next(for: prompt)
         switch reply {
         case .text(let text):
@@ -50,7 +50,7 @@ public final class FakeModel: LanguageModel, @unchecked Sendable {
         }
     }
 
-    public func stream(_ prompt: String, options: GenerationOptions) -> AsyncThrowingStream<String, Error> {
+    public func stream(_ prompt: String, options: ModelOptions) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let reply: Reply
             do {

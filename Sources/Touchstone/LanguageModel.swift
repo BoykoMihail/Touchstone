@@ -8,21 +8,25 @@ import Foundation
 public protocol LanguageModel: Sendable {
 
     /// One-shot completion.
-    func respond(to prompt: String, options: GenerationOptions) async throws -> String
+    func respond(to prompt: String, options: ModelOptions) async throws -> String
 
     /// Incremental completion. Each element is a new chunk, not the accumulated text.
     ///
     /// Cancelling the consuming task must stop generation: implementations run
     /// their work inside the stream's task so that structured concurrency does
     /// this for free, rather than asking callers to hold a handle.
-    func stream(_ prompt: String, options: GenerationOptions) -> AsyncThrowingStream<String, Error>
+    func stream(_ prompt: String, options: ModelOptions) -> AsyncThrowingStream<String, Error>
 }
 
 /// Knobs that every backend understands. Anything model-specific belongs to the
 /// backend's own initialiser, not here — this type stays small on purpose.
-public struct GenerationOptions: Sendable, Equatable {
+///
+/// Named `ModelOptions` rather than `GenerationOptions` deliberately: Apple's
+/// `FoundationModels` framework already owns the latter, and a backend file that
+/// imports both modules would have to disambiguate every mention of it.
+public struct ModelOptions: Sendable, Equatable {
 
-    /// 0 = deterministic as the backend can manage. Structured output wants low values.
+    /// 0 = as deterministic as the backend can manage. Structured output wants low values.
     public var temperature: Double
 
     /// Upper bound on generated tokens, when the backend supports it.
@@ -33,6 +37,6 @@ public struct GenerationOptions: Sendable, Equatable {
         self.maximumTokens = maximumTokens
     }
 
-    /// Sensible default for typed output: low temperature, no explicit cap.
-    public static let structured = GenerationOptions(temperature: 0.0)
+    /// Sensible default for typed output: no creativity, no explicit cap.
+    public static let structured = ModelOptions(temperature: 0.0)
 }

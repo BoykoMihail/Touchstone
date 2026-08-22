@@ -17,13 +17,13 @@ public struct FoundationModel: LanguageModel {
         self.instructions = instructions
     }
 
-    public func respond(to prompt: String, options: GenerationOptions) async throws -> String {
+    public func respond(to prompt: String, options: ModelOptions) async throws -> String {
         let session = makeSession()
         let response = try await session.respond(to: prompt)
         return response.content
     }
 
-    public func stream(_ prompt: String, options: GenerationOptions) -> AsyncThrowingStream<String, Error> {
+    public func stream(_ prompt: String, options: ModelOptions) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             // The work runs inside a child task of the stream, so cancelling the
             // consumer cancels generation. That is the whole cancellation story:
@@ -70,11 +70,11 @@ public struct FoundationModel: LanguageModel {
 
     public init(instructions: String? = nil) {}
 
-    public func respond(to prompt: String, options: GenerationOptions) async throws -> String {
+    public func respond(to prompt: String, options: ModelOptions) async throws -> String {
         throw FoundationModelUnavailable()
     }
 
-    public func stream(_ prompt: String, options: GenerationOptions) -> AsyncThrowingStream<String, Error> {
+    public func stream(_ prompt: String, options: ModelOptions) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { $0.finish(throwing: FoundationModelUnavailable()) }
     }
 }

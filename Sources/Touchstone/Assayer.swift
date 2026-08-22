@@ -2,10 +2,14 @@ import Foundation
 
 /// Entry point. Wraps a `LanguageModel` and adds typed output, bounded repair
 /// and streaming that cancels with its task.
-public struct Touchstone: Sendable {
+///
+/// An assayer is the person who tests whether metal is what it claims to be.
+/// Named that way rather than `Touchstone` so the type never collides with its
+/// own module — `Touchstone.Something` should always mean the module.
+public struct Assayer: Sendable {
 
     private let model: any LanguageModel
-    private let options: GenerationOptions
+    private let options: ModelOptions
     private let maximumRepairs: Int
 
     /// - Parameters:
@@ -15,7 +19,7 @@ public struct Touchstone: Sendable {
     ///     giving up. Zero means one attempt and no repair.
     public init(
         model: any LanguageModel,
-        options: GenerationOptions = .structured,
+        options: ModelOptions = .structured,
         maximumRepairs: Int = 2
     ) {
         self.model = model
@@ -32,7 +36,7 @@ public struct Touchstone: Sendable {
     public func value<T: Assayable>(
         _ type: T.Type,
         from prompt: String,
-        options overrides: GenerationOptions? = nil
+        options overrides: ModelOptions? = nil
     ) async throws -> T {
         let options = overrides ?? self.options
         var attempt = 0
@@ -67,7 +71,7 @@ public struct Touchstone: Sendable {
     /// there is no handle to keep and nothing to remember to tear down.
     public func stream(
         _ prompt: String,
-        options overrides: GenerationOptions? = nil
+        options overrides: ModelOptions? = nil
     ) -> AsyncThrowingStream<String, Error> {
         model.stream(prompt, options: overrides ?? options)
     }

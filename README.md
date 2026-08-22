@@ -15,7 +15,7 @@ struct Expense: Assayable {
     """
 }
 
-let ai = Touchstone(model: FoundationModel())
+let ai = Assayer(model: FoundationModel())
 let expense = try await ai.value(Expense.self, from: "coffee and a croissant, 8 euro 40")
 
 expense.amount.decimal   // 8.40 as Decimal — never through Double
@@ -55,7 +55,7 @@ for try await chunk in ai.stream("summarise this transaction history") {
 `TouchstoneTesting` ships a deterministic fake:
 
 ```swift
-let ai = Touchstone(model: FakeModel(replies: [.text(#"{"amount":"8.40","category":"food"}"#)]))
+let ai = Assayer(model: FakeModel(replies: [.text(#"{"amount":"8.40","category":"food"}"#)]))
 ```
 
 Which means you can unit-test the interesting cases — malformed output, a truncated stream, a model that fails on the third token, a rate-limit error — in milliseconds, on CI, with no network and no device. Record real responses once, replay them forever.
