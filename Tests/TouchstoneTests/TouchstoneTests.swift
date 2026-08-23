@@ -128,3 +128,38 @@ func surfacesTruncatedStream() async throws {
     }
     #expect(text == "partial")
 }
+
+@Test("A backend failure surfaces immediately instead of burning repair attempts")
+func doesNotRepairBackendFailures() async throws {
+    // A refusal or a dead socket is not a malformed answer. Re-asking the same
+    // prompt is a guaranteed second failure, so only AssayError feeds the repair
+    // loop — everything else goes straight to the caller. The second reply below
+    // is a trap: if it is ever consumed, the loop retried something it shouldn't.
+    struct Refused: Error {}
+    let model = FakeModel(replies: [
+        .failure(Refused()),
+        .text(#"{"amount":8.40,"category":"food"}"#)
+    ])
+    let ai = Assayer(model: model, maximumRepairs: 2)
+
+    await #expect(throws: Refused.self) {
+        _ = try await ai.value(Expense.self, from: "coffee")
+    }
+    #expect(model.receivedPrompts.count == 1)
+}
+
+@Test("maximumRepairs of zero means one attempt and no repair")
+func honoursZeroRepairs() async throws {
+    let model = FakeModel(replies: [.text("not json at all")])
+    let ai = Assayer(model: model, maximumRepairs: 0)
+
+    await #expect(
+        throws: AssayError.repairsExhausted(
+            attempts: 1,
+            lastReason: "the reply contained no JSON object"
+        )
+    ) {
+        _ = try await ai.value(Expense.self, from: "coffee")
+    }
+    #expect(model.receivedPrompts.count == 1)
+}
