@@ -66,6 +66,25 @@ let ai = Assayer(model: FakeModel(replies: [.text(#"{"amount":"8.40","category":
 
 Which means you can unit-test the interesting cases — malformed output, a truncated stream, a model that fails on the third token, a rate-limit error — in milliseconds, on CI, with no network and no device. Record real responses once, replay them forever.
 
+The package's own suite works the same way: nothing touches the network. There is one exception, and it is opt-in, because a library that has never spoken to a real model only works in its own imagination:
+
+```bash
+brew install ollama && ollama serve
+ollama pull llama3.2:1b
+TOUCHSTONE_LIVE=1 swift test
+```
+
+| Verified against | How |
+|---|---|
+| Ollama, `llama3.2:1b`, CPU-only | `.ollama(model:)`, no key — typed output, repair and a 21-chunk stream all worked |
+
+Two things that run says out loud. A one-billion-parameter model does produce
+usable JSON through the repair loop, which is better than I expected. And asked
+to "reply with the single word: pong", it replied "game" — it played word
+association instead of following the instruction. Nothing was wrong with the
+call; the model simply didn't do as it was told. That is the entire reason this
+library exists: without a schema and a check, "game" is what reaches your app.
+
 ### 5. "No model" is a product decision, not an error
 
 An on-device model isn't always there. The device may not be eligible, the user may not have switched Apple Intelligence on, or the model may still be downloading — and those are three different pieces of UI, none of which is an error message.
@@ -94,14 +113,31 @@ Three targets, on purpose:
 | `Touchstone` | nothing | Core. Runs anywhere Swift runs, including Linux CI. |
 | `TouchstoneTesting` | `Touchstone` | Fake model, snapshot helpers. |
 | `TouchstoneFoundationModels` | Apple's `FoundationModels` | The on-device backend. |
+| `TouchstoneOpenAICompatible` | Foundation only | Any server speaking the OpenAI chat-completions dialect. |
 
 The core knows nothing about any specific model. `LanguageModel` is a two-method protocol, so an on-device model, a cloud API, or a fake are interchangeable — including in tests, which is the whole point.
+
+The second backend is one implementation for OpenAI, Ollama, LM Studio, llama.cpp's server and Groq: they differ by a base URL and whether a key is needed.
+
+```swift
+// A hosted model
+let hosted = OpenAICompatibleModel(configuration: .init(
+    baseURL: URL(string: "https://api.openai.com/v1")!,
+    model: "gpt-4o-mini",
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
+))
+
+// Or nothing but localhost: no key, no account, no network
+let local = OpenAICompatibleModel(configuration: .ollama(model: "llama3.2"))
+```
+
+It exists mostly to keep the previous paragraph honest. A protocol with one implementation is a guess; `LanguageModel` had to meet something that wasn't designed alongside it. Streaming needs `URLSession.bytes(for:)`, which non-Apple Foundation doesn't ship, so on Linux the streaming call returns a named error rather than failing to link — and the target still builds there, which is what proves the rest of it carries no Apple dependency.
 
 ## Status
 
 `0.1.0` — early, but real. Everything in this README is implemented and covered by tests: typed output with bounded repair, `LenientDecimal`, streaming with cancellation, the fake model, and the on-device backend with its availability and error split.
 
-What isn't here yet: a second backend (an OpenAI-compatible one is next, so that "swap the model" is proven rather than asserted), and a demo app.
+What isn't here yet: a demo app.
 
 The API may still change while the version is `0.x`; breaking changes will be called out in the changelog.
 
