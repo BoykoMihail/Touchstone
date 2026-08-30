@@ -3,6 +3,13 @@ import Testing
 import Touchstone
 @testable import TouchstoneOpenAICompatible
 
+// URLRequest lives in FoundationNetworking outside Apple platforms. The backend
+// itself already imports it conditionally; the tests have to as well, which the
+// Linux job noticed and the macOS one could not.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 // Everything here runs without a server. That is the design claim of this
 // backend: the only part that needs a network is the two URLSession calls, and
 // every decision around them — what goes on the wire, what a line means, what a
