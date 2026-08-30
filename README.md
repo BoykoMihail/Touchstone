@@ -66,6 +66,25 @@ let ai = Assayer(model: FakeModel(replies: [.text(#"{"amount":"8.40","category":
 
 Which means you can unit-test the interesting cases — malformed output, a truncated stream, a model that fails on the third token, a rate-limit error — in milliseconds, on CI, with no network and no device. Record real responses once, replay them forever.
 
+### 5. "No model" is a product decision, not an error
+
+An on-device model isn't always there. The device may not be eligible, the user may not have switched Apple Intelligence on, or the model may still be downloading — and those are three different pieces of UI, none of which is an error message.
+
+```swift
+if let reason = FoundationModel.unavailableReason {
+    switch reason {
+    case .deviceNotEligible:  hideTheFeature()        // nothing the user can do
+    case .notEnabled:         explainHowToTurnItOn()  // an onboarding step
+    case .modelNotReady:      offerToRetryLater()     // still downloading
+    default:                  hideTheFeature()
+    }
+}
+```
+
+Check it once, before you show the entry point. Calling anyway is safe — you get a typed `FoundationModelError.unavailable(reason)` rather than an opaque framework failure — but by then the user has already tapped a button that was never going to work.
+
+The same split runs through the errors. A guardrail refusal, a prompt over the context window and a rate limit are separate cases, because the caller does something different about each. And a refusal deliberately **does not** feed the repair loop: re-asking a prompt the model just refused is three guaranteed failures and three times the latency.
+
 ## Design
 
 Three targets, on purpose:
@@ -80,7 +99,11 @@ The core knows nothing about any specific model. `LanguageModel` is a two-method
 
 ## Status
 
-Early. The API in this README is the target design, and it's what the code is being built against — README-first, deliberately. Follow along or open an issue if you'd design it differently.
+`0.1.0` — early, but real. Everything in this README is implemented and covered by tests: typed output with bounded repair, `LenientDecimal`, streaming with cancellation, the fake model, and the on-device backend with its availability and error split.
+
+What isn't here yet: a second backend (an OpenAI-compatible one is next, so that "swap the model" is proven rather than asserted), and a demo app.
+
+The API may still change while the version is `0.x`; breaking changes will be called out in the changelog.
 
 ## Requirements
 
