@@ -30,7 +30,9 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
   the streaming call returns `.streamingUnavailable` instead of a byte stream.
 - Everything except the two `URLSession` calls is pure and covered by tests:
   building the request, reading an SSE line, turning a status code into an error.
-  No test in this package touches the network.
+  The calls themselves are covered too, through a stub `URLProtocol` — so the
+  whole non-streaming path is exercised end to end. No test in this package
+  touches the network.
 
 ## [0.1.0] — 2026-08-30
 
