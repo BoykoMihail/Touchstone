@@ -66,6 +66,14 @@ let ai = Assayer(model: FakeModel(replies: [.text(#"{"amount":"8.40","category":
 
 Which means you can unit-test the interesting cases — malformed output, a truncated stream, a model that fails on the third token, a rate-limit error — in milliseconds, on CI, with no network and no device. Record real responses once, replay them forever.
 
+The package's own suite works the same way: nothing touches the network. There is one exception, and it is opt-in, because a library that has never spoken to a real model only works in its own imagination:
+
+```bash
+brew install ollama && ollama serve
+ollama pull llama3.2:1b
+TOUCHSTONE_LIVE=1 swift test
+```
+
 ### 5. "No model" is a product decision, not an error
 
 An on-device model isn't always there. The device may not be eligible, the user may not have switched Apple Intelligence on, or the model may still be downloading — and those are three different pieces of UI, none of which is an error message.
