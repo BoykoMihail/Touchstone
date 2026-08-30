@@ -74,6 +74,17 @@ ollama pull llama3.2:1b
 TOUCHSTONE_LIVE=1 swift test
 ```
 
+| Verified against | How |
+|---|---|
+| Ollama, `llama3.2:1b`, CPU-only | `.ollama(model:)`, no key — typed output, repair and a 21-chunk stream all worked |
+
+Two things that run says out loud. A one-billion-parameter model does produce
+usable JSON through the repair loop, which is better than I expected. And asked
+to "reply with the single word: pong", it replied "game" — it played word
+association instead of following the instruction. Nothing was wrong with the
+call; the model simply didn't do as it was told. That is the entire reason this
+library exists: without a schema and a check, "game" is what reaches your app.
+
 ### 5. "No model" is a product decision, not an error
 
 An on-device model isn't always there. The device may not be eligible, the user may not have switched Apple Intelligence on, or the model may still be downloading — and those are three different pieces of UI, none of which is an error message.
