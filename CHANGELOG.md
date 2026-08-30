@@ -9,6 +9,29 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
 
 ## [Unreleased]
 
+### Added
+
+- `TouchstoneOpenAICompatible` — a second backend, for any server speaking the
+  OpenAI chat-completions dialect: OpenAI, Ollama, LM Studio, llama.cpp's server,
+  Groq. One base URL and an optional key apart.
+- `OpenAICompatibleModel.Configuration.ollama(model:)` — the local default, so the
+  library can be tried with no key and no account.
+- `OpenAICompatibleError` — the same categories as the on-device backend
+  (`unauthorized`, `rateLimited`, `promptTooLong`, `refused`, `serverError`,
+  `transport`, `malformedResponse`), because a caller that has to write different
+  error handling per backend has no abstraction, only two clients.
+
+### Notes
+
+- This is what turns "swap the model" from a design claim into a demonstrated one:
+  `LanguageModel` had to meet an implementation it wasn't designed alongside. It
+  fit, with one exception worth recording — streaming needs
+  `URLSession.bytes(for:)`, which non-Apple Foundation doesn't ship, so on Linux
+  the streaming call returns `.streamingUnavailable` instead of a byte stream.
+- Everything except the two `URLSession` calls is pure and covered by tests:
+  building the request, reading an SSE line, turning a status code into an error.
+  No test in this package touches the network.
+
 ## [0.1.0] — 2026-08-30
 
 First tagged version. The API described in the README is implemented and tested.

@@ -94,14 +94,31 @@ Three targets, on purpose:
 | `Touchstone` | nothing | Core. Runs anywhere Swift runs, including Linux CI. |
 | `TouchstoneTesting` | `Touchstone` | Fake model, snapshot helpers. |
 | `TouchstoneFoundationModels` | Apple's `FoundationModels` | The on-device backend. |
+| `TouchstoneOpenAICompatible` | Foundation only | Any server speaking the OpenAI chat-completions dialect. |
 
 The core knows nothing about any specific model. `LanguageModel` is a two-method protocol, so an on-device model, a cloud API, or a fake are interchangeable — including in tests, which is the whole point.
+
+The second backend is one implementation for OpenAI, Ollama, LM Studio, llama.cpp's server and Groq: they differ by a base URL and whether a key is needed.
+
+```swift
+// A hosted model
+let hosted = OpenAICompatibleModel(configuration: .init(
+    baseURL: URL(string: "https://api.openai.com/v1")!,
+    model: "gpt-4o-mini",
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
+))
+
+// Or nothing but localhost: no key, no account, no network
+let local = OpenAICompatibleModel(configuration: .ollama(model: "llama3.2"))
+```
+
+It exists mostly to keep the previous paragraph honest. A protocol with one implementation is a guess; `LanguageModel` had to meet something that wasn't designed alongside it. Streaming needs `URLSession.bytes(for:)`, which non-Apple Foundation doesn't ship, so on Linux the streaming call returns a named error rather than failing to link — and the target still builds there, which is what proves the rest of it carries no Apple dependency.
 
 ## Status
 
 `0.1.0` — early, but real. Everything in this README is implemented and covered by tests: typed output with bounded repair, `LenientDecimal`, streaming with cancellation, the fake model, and the on-device backend with its availability and error split.
 
-What isn't here yet: a second backend (an OpenAI-compatible one is next, so that "swap the model" is proven rather than asserted), and a demo app.
+What isn't here yet: a demo app.
 
 The API may still change while the version is `0.x`; breaking changes will be called out in the changelog.
 
