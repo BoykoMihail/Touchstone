@@ -5,3 +5,4 @@
 xcuserdata/
 *.xcodeproj
 .netrc
+.build-cli/

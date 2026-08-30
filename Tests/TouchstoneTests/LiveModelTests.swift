@@ -70,7 +70,8 @@ struct LiveModelTests {
         // The piece the unit tests cannot reach: a genuine SSE stream, with
         // whatever chunk boundaries the server felt like.
         var chunks: [String] = []
-        for try await chunk in Live.model.stream("Count from one to five, in words.") {
+        let stream = Live.model.stream("Count from one to five, in words.", options: .structured)
+        for try await chunk in stream {
             chunks.append(chunk)
         }
 
