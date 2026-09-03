@@ -40,3 +40,23 @@ public struct ModelOptions: Sendable, Equatable {
     /// Sensible default for typed output: no creativity, no explicit cap.
     public static let structured = ModelOptions(temperature: 0.0)
 }
+
+public extension LanguageModel {
+
+    /// One-shot completion with the default options.
+    ///
+    /// A protocol requirement cannot carry default arguments, so every call
+    /// made directly against `LanguageModel` — rather than through `Assayer`,
+    /// which has its own defaults — had to spell out `options:` even when it
+    /// had nothing to say about them. The first such call written in this
+    /// repository failed to compile for exactly that reason, which is the
+    /// whole argument for these two overloads existing.
+    func respond(to prompt: String) async throws -> String {
+        try await respond(to: prompt, options: ModelOptions())
+    }
+
+    /// Incremental completion with the default options.
+    func stream(_ prompt: String) -> AsyncThrowingStream<String, Error> {
+        stream(prompt, options: ModelOptions())
+    }
+}

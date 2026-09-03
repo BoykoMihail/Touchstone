@@ -163,3 +163,35 @@ func honoursZeroRepairs() async throws {
     }
     #expect(model.receivedPrompts.count == 1)
 }
+
+/// Records the options it was handed. `FakeModel` deliberately ignores them,
+/// so proving that the convenience overloads pass defaults through needs a
+/// model that looks. Used from a single task, hence no lock.
+private final class OptionsRecorder: LanguageModel, @unchecked Sendable {
+
+    private(set) var seen: [ModelOptions] = []
+
+    func respond(to prompt: String, options: ModelOptions) async throws -> String {
+        seen.append(options)
+        return "ok"
+    }
+
+    func stream(_ prompt: String, options: ModelOptions) -> AsyncThrowingStream<String, Error> {
+        seen.append(options)
+        return AsyncThrowingStream { continuation in
+            continuation.yield("ok")
+            continuation.finish()
+        }
+    }
+}
+
+@Test("Calling a model without options fills in the defaults")
+func convenienceOverloadsFillInDefaultOptions() async throws {
+    let model = OptionsRecorder()
+
+    let answer = try await model.respond(to: "anything")
+    for try await _ in model.stream("anything") {}
+
+    #expect(answer == "ok")
+    #expect(model.seen == [ModelOptions(), ModelOptions()])
+}
