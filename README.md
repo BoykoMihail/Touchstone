@@ -78,6 +78,7 @@ TOUCHSTONE_LIVE=1 swift test
 |---|---|
 | Ollama, `llama3.2:1b`, CPU-only | `.ollama(model:)`, no key — typed output, repair and a 21-chunk stream all worked |
 | Apple `FoundationModels`, iOS 26 simulator | Reports itself **available**, then refuses every request on the guardrail — see below |
+| Apple `FoundationModels`, iPhone 17, iOS 26.6.1 | Reports `.notEnabled` — and on that device it cannot be enabled at all, see below |
 
 Two things that run says out loud. A one-billion-parameter model does produce
 usable JSON through the repair loop, which is better than I expected. And asked
@@ -108,6 +109,19 @@ request then comes back as a guardrail refusal. Not a suspicious prompt:
 Availability and willingness are two different questions, and the framework
 only answers the first. Verify the on-device backend on real hardware; a green
 availability check in a simulator means nothing.
+
+**On real hardware the check is honest, and the answer can be permanent.** The
+same demo on an iPhone 17 running iOS 26.6.1 reports `.notEnabled` rather than
+pretending. What makes that worth writing down is *why*: Apple Intelligence
+requires the device language and the Siri language to match, and to be one of a
+supported set — which does not include Russian, Ukrainian, Polish, Greek,
+Hindi, Arabic or Hebrew, among others. So on a phone whose owner reads Russian,
+this feature is not "switched off pending onboarding". It is unavailable, and no
+amount of explaining where the toggle lives will change that.
+
+Which is the whole argument for treating `unavailableReason` as product input
+rather than an error path. `.notEnabled` looks like something you can talk the
+user into fixing. For a large share of the world's phones it is not.
 
 That is also the accidental proof of the paragraph below. Each of those refusals
 cost exactly one call — `attempts: 0`, one named error — because a refusal never

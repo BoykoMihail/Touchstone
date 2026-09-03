@@ -39,6 +39,12 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
 
 ### Notes
 
+- On an iPhone 17 (iOS 26.6.1) the same backend reports `.notEnabled`, and on
+  that device it cannot be enabled: Apple Intelligence needs the device and Siri
+  languages to match and to be one of a supported set, which excludes Russian
+  among others. `.notEnabled` therefore does not always mean "the user could
+  turn this on" — sometimes it means "never, on this phone". Another reason the
+  reason code belongs in product decisions rather than in an error path.
 - Apple's on-device model reports itself **available** in the iOS 26 simulator
   and then refuses every request on the guardrail — "lunch, 12.50" included, and
   a plain prose prompt too. `unavailableReason` answers whether the model is
