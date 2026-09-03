@@ -34,3 +34,41 @@ jobs:
       # Red here means the core grew an Apple dependency — a design regression.
       - run: swift build --build-tests
       - run: swift test
+
+  coverage:
+    name: Coverage (75% gate)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - run: swift test --enable-code-coverage
+      # The gate is set below the current number on purpose: it exists to catch
+      # a target landing with no tests at all, not to make every PR argue about
+      # a percentage point. Raise it when the real figure moves, not before.
+      - name: Check line coverage
+        run: |
+          set -euo pipefail
+          # No `| head -1` anywhere below: under `pipefail` a closed pipe
+          # fails the step, and that failure would read as low coverage.
+          bundles=("$(swift build --show-bin-path)"/*.xctest)
+          bundle="${bundles[0]}"
+          binary="$bundle/Contents/MacOS/$(basename "$bundle" .xctest)"
+          profdata=$(find .build -name '*.profdata' -print -quit)
+          percent=$(xcrun llvm-cov export \
+            -summary-only \
+            -instr-profile "$profdata" \
+            -ignore-filename-regex='(Tests|\.build)/' \
+            "$binary" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"][0]["totals"]["lines"]["percent"])')
+          echo "line coverage: $percent%"
+          python3 - "$percent" <<'PY'
+          import sys
+          percent = float(sys.argv[1])
+          gate = 75.0
+          if percent < gate:
+              print(f"::error::line coverage {percent:.1f}% is below the {gate:.0f}% gate")
+              sys.exit(1)
+          print(f"line coverage {percent:.1f}% clears the {gate:.0f}% gate")
+          PY
