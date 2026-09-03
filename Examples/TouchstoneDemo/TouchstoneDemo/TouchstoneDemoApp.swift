@@ -195,6 +195,15 @@ final class DemoModel {
         }
     }
 
+    /// The on-device model reports itself available in a simulator and then
+    /// refuses everything. Without this line the demo looks broken, and the
+    /// reader blames the library rather than the runtime.
+    var failureHint: String? {
+        guard backend == .appleIntelligence,
+              let failure, failure.contains("refused") else { return nil }
+        return "Running in a simulator? There the on-device model says it is available and then refuses every request, benign ones included. Availability and willingness are different questions — check this backend on real hardware."
+    }
+
     func extract() async {
         replies = []
         expense = nil

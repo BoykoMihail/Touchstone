@@ -32,6 +32,10 @@ struct TypedOutputView: View {
                     resultSection
                 }
                 .padding()
+                // The iOS 26 tab bar floats over the content, so the last row
+                // of the result would sit underneath it with nothing left to
+                // scroll.
+                .padding(.bottom, 56)
             }
             .navigationTitle("Sentence → value")
             .background(Color(.systemGroupedBackground))
@@ -195,6 +199,13 @@ struct TypedOutputView: View {
                         Text("An error, which is the point: no partially filled value, no silent zero.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+
+                        if let hint = model.failureHint {
+                            Label(hint, systemImage: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .padding(.top, 4)
+                        }
                     }
                 }
             }
@@ -264,6 +275,7 @@ struct StreamingView: View {
                     .card()
                 }
                 .padding()
+                .padding(.bottom, 56)
             }
             .navigationTitle("Streaming")
             .background(Color(.systemGroupedBackground))
