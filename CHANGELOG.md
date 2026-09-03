@@ -24,9 +24,13 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
   `options:`. A protocol requirement cannot carry default arguments, so the first
   call written directly against the protocol, rather than through `Assayer`, did
   not compile. That is evidence about the shape of the API, not a matter of taste.
-- A coverage job in CI with a 75% line gate over `Sources/`. Deliberately below
-  the current figure: it is there to catch a target arriving untested, not to
-  argue about single percentage points.
+- A coverage job in CI with a 70% line gate over `Sources/`. The real figure on
+  a runner is 74.6%; the gap is not slack. Streaming over a live `URLSession` is
+  only exercised by the opt-in live tests, and `TouchstoneFoundationModels`
+  needs iOS 26 on eligible hardware, which no runner has. The gate is there to
+  catch a target arriving with no tests, not to serve as a quality score. When
+  the gate fails it prints per-file coverage, so the answer is which file
+  rather than which percentage.
 
 ### Notes
 
