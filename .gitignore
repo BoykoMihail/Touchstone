@@ -2,7 +2,13 @@
 /.build
 /.swiftpm
 /Packages
-xcuserdata/
-*.xcodeproj
 .netrc
 .build-cli/
+
+# Xcode. The demo's .xcodeproj IS committed on purpose — without it nobody can
+# open Examples/ — so only the per-user and generated parts are ignored here.
+xcuserdata/
+*.xcuserdatad/
+DerivedData/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/

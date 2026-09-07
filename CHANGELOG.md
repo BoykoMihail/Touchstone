@@ -31,8 +31,27 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
   catch a target arriving with no tests, not to serve as a quality score. When
   the gate fails it prints per-file coverage, so the answer is which file
   rather than which percentage.
+- `Examples/TouchstoneDemo` — a SwiftUI app that runs before you have a model.
+  Defaults to the fake backend with three scenarios (clean, one repair, never
+  valid), and offers Apple Intelligence, Ollama or a cloud key. A twelve-line
+  decorator in the demo shows every reply the model gave, rejected ones
+  included.
 
 ### Notes
+
+- On an iPhone 17 (iOS 26.6.1) the same backend reports `.notEnabled`, and on
+  that device it cannot be enabled: Apple Intelligence needs the device and Siri
+  languages to match and to be one of a supported set, which excludes Russian
+  among others. `.notEnabled` therefore does not always mean "the user could
+  turn this on" — sometimes it means "never, on this phone". Another reason the
+  reason code belongs in product decisions rather than in an error path.
+- Apple's on-device model reports itself **available** in the iOS 26 simulator
+  and then refuses every request on the guardrail — "lunch, 12.50" included, and
+  a plain prose prompt too. `unavailableReason` answers whether the model is
+  there, not whether it will answer. Verify that backend on real hardware.
+  Incidentally this confirmed a decision made from the documentation in 0.1.0:
+  because a refusal never enters the repair loop, each of those cost one call
+  and one named error rather than three failed requests.
 
 - This is what turns "swap the model" from a design claim into a demonstrated one:
   `LanguageModel` had to meet an implementation it wasn't designed alongside. It

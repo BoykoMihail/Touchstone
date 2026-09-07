@@ -77,6 +77,8 @@ TOUCHSTONE_LIVE=1 swift test
 | Verified against | How |
 |---|---|
 | Ollama, `llama3.2:1b`, CPU-only | `.ollama(model:)`, no key — typed output, repair and a 21-chunk stream all worked |
+| Apple `FoundationModels`, iOS 26 simulator | Reports itself **available**, then refuses every request on the guardrail — see below |
+| Apple `FoundationModels`, iPhone 17, iOS 26.6.1 | Reports `.notEnabled` — and on that device it cannot be enabled at all, see below |
 
 Two things that run says out loud. A one-billion-parameter model does produce
 usable JSON through the repair loop, which is better than I expected. And asked
@@ -100,9 +102,49 @@ if let reason = FoundationModel.unavailableReason {
 }
 ```
 
+**Availability is not a promise, though.** In the iOS 26 simulator
+`unavailableReason` is `nil` — the model says it is there — and every single
+request then comes back as a guardrail refusal. Not a suspicious prompt:
+"lunch, 12.50" is refused, and so is "describe this expense in two sentences".
+Availability and willingness are two different questions, and the framework
+only answers the first. Verify the on-device backend on real hardware; a green
+availability check in a simulator means nothing.
+
+**On real hardware the check is honest, and the answer can be permanent.** The
+same demo on an iPhone 17 running iOS 26.6.1 reports `.notEnabled` rather than
+pretending. What makes that worth writing down is *why*: Apple Intelligence
+requires the device language and the Siri language to match, and to be one of a
+supported set — which does not include Russian, Ukrainian, Polish, Greek,
+Hindi, Arabic or Hebrew, among others. So on a phone whose owner reads Russian,
+this feature is not "switched off pending onboarding". It is unavailable, and no
+amount of explaining where the toggle lives will change that.
+
+Which is the whole argument for treating `unavailableReason` as product input
+rather than an error path. `.notEnabled` looks like something you can talk the
+user into fixing. For a large share of the world's phones it is not.
+
+That is also the accidental proof of the paragraph below. Each of those refusals
+cost exactly one call — `attempts: 0`, one named error — because a refusal never
+enters the repair loop. Had it, every one of them would have been three failed
+requests instead of one.
+
 Check it once, before you show the entry point. Calling anyway is safe — you get a typed `FoundationModelError.unavailable(reason)` rather than an opaque framework failure — but by then the user has already tapped a button that was never going to work.
 
 The same split runs through the errors. A guardrail refusal, a prompt over the context window and a rate limit are separate cases, because the caller does something different about each. And a refusal deliberately **does not** feed the repair loop: re-asking a prompt the model just refused is three guaranteed failures and three times the latency.
+
+## Examples
+
+`Examples/TouchstoneDemo` is a small SwiftUI app. Open it, press one button, and
+watch a sentence become an `Expense`.
+
+It defaults to the **fake** backend, which is the whole point: it works the
+instant you open it, with no model to download, no key and no server. Three
+scripted scenarios — a clean answer, one that needs a repair, and one that never
+becomes valid. The third is the one to look at, because it ends in an error
+rather than a plausible zero.
+
+Apple Intelligence, Ollama and a cloud key are the other three options, and each
+states in one line what it needs.
 
 ## Design
 
