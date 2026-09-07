@@ -26,6 +26,8 @@ expense.category        // "food"
 
 No prompt engineering for the format, no hand-written JSON parsing, no defaults papering over a bad answer.
 
+There is a runnable demo in [`Examples/`](#examples) that needs no model, no key and no server — worth thirty seconds before reading further.
+
 ## Why this exists
 
 Most Swift LLM libraries solve *access* to the model. Touchstone solves what happens after: the model answered, and now you have a `String` that may or may not be what your app needs.
@@ -145,6 +147,13 @@ rather than a plausible zero.
 
 Apple Intelligence, Ollama and a cloud key are the other three options, and each
 states in one line what it needs.
+
+<img src="Examples/screenshot-one-repair.png" alt="The demo app running the one-repair scenario: two attempts, the first reply rejected, the second decoded into an Expense" width="330">
+
+The "one repair" scenario, which is the whole library on one screen: the model
+answered in prose, that answer was rejected, the decoder's complaint went back
+with the second request, and the second answer decoded. Two attempts, and what
+comes out is an `Expense` rather than a string that looks like one.
 
 ## Design
 
