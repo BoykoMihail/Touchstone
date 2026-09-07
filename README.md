@@ -177,9 +177,9 @@ It exists mostly to keep the previous paragraph honest. A protocol with one impl
 
 ## Status
 
-`0.1.0` — early, but real. Everything in this README is implemented and covered by tests: typed output with bounded repair, `LenientDecimal`, streaming with cancellation, the fake model, and the on-device backend with its availability and error split.
+`0.2.0` — early, but real. Everything in this README is implemented and covered by tests: typed output with bounded repair, `LenientDecimal`, streaming with cancellation, the fake model, the on-device backend with its availability and error split, and a second backend for any OpenAI-compatible server. `Examples/TouchstoneDemo` runs on the fake backend with no model, no key and no server.
 
-What isn't here yet: a demo app.
+What isn't here yet: guided generation on backends that support constrained decoding (where the repair loop should get out of the way entirely), a native Anthropic backend on `/v1/messages`, streaming of typed output, and DocC pages.
 
 The API may still change while the version is `0.x`; breaking changes will be called out in the changelog.
 
