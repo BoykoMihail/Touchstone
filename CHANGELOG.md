@@ -9,6 +9,13 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] — 2026-09-07
+
+The release that stops this being one implementation with a protocol drawn
+around it. Two backends now, and an app you can run before you have a model.
+
 ### Added
 
 - `TouchstoneOpenAICompatible` — a second backend, for any server speaking the
