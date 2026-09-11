@@ -9,7 +9,30 @@ anything breaking is listed under **Changed** or **Removed** with the reason.
 
 ## [Unreleased]
 
-Nothing yet.
+### Notes
+
+- **The on-device backend was verified answering on real hardware**, which
+  corrects two things written under 0.2.0. iPhone 17, iOS 26.6.1, Apple
+  Intelligence on: typed output in one attempt with no repair, and a
+  three-chunk stream.
+  - "on that device it cannot be enabled" was too strong. It can. The blocker is
+    the language the phone is in, not the phone. Apple Intelligence needs the
+    device and Siri languages to match down to the regional variant — with the
+    phone in English but the region still Russia, the device reads as
+    "English (Russia)" against Siri's "English (United States)", they do not
+    match, and no toggle appears at all. Match the region and the feature works.
+    `.notEnabled` is still a product state worth branching on, but it means
+    "not in the language this person reads", not "never on this hardware".
+  - the guardrail refusals were attributed to the model. They belong to the
+    **simulator**: the prompts the iOS 26 simulator refused every time were
+    answered on the first attempt by the device.
+- Apple's on-device model returns its JSON wrapped in a Markdown code fence, in
+  the typed call and in the stream both. Nothing asked it to. This is the first
+  confirmation of the lenient extraction against a real model rather than the
+  fake one.
+- Between enabling Apple Intelligence and the model finishing its download, the
+  backend reported `.notEnabled` rather than `.modelNotReady`. Read availability
+  when you are about to show the entry point, not once at launch.
 
 ## [0.2.0] — 2026-09-07
 

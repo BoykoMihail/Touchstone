@@ -79,10 +79,11 @@ TOUCHSTONE_LIVE=1 swift test
 | Verified against | How |
 |---|---|
 | Ollama, `llama3.2:1b`, CPU-only | `.ollama(model:)`, no key — typed output, repair and a 21-chunk stream all worked |
-| Apple `FoundationModels`, iOS 26 simulator | Reports itself **available**, then refuses every request on the guardrail — see below |
-| Apple `FoundationModels`, iPhone 17, iOS 26.6.1 | Reports `.notEnabled` — and on that device it cannot be enabled at all, see below |
+| Apple `FoundationModels`, iPhone 17 / iOS 26.6.1, Apple Intelligence on | Typed output in **one attempt**, no repair needed, and a three-chunk stream. Both replies arrived wrapped in a Markdown code fence |
+| Apple `FoundationModels`, same phone, Apple Intelligence off | Reports `.notEnabled` — a product state, not a hardware verdict, see below |
+| Apple `FoundationModels`, iOS 26 simulator | Reports itself **available**, then refuses every request on the guardrail — the same prompts the device answers, see below |
 
-Two things that run says out loud. A one-billion-parameter model does produce
+Two things that Ollama run says out loud. A one-billion-parameter model does produce
 usable JSON through the repair loop, which is better than I expected. And asked
 to "reply with the single word: pong", it replied "game" — it played word
 association instead of following the instruction. Nothing was wrong with the
@@ -104,31 +105,52 @@ if let reason = FoundationModel.unavailableReason {
 }
 ```
 
-**Availability is not a promise, though.** In the iOS 26 simulator
-`unavailableReason` is `nil` — the model says it is there — and every single
-request then comes back as a guardrail refusal. Not a suspicious prompt:
+**The simulator lies, and it lies in the confident direction.** In the iOS 26
+simulator `unavailableReason` is `nil` — the model says it is there — and every
+single request then comes back as a guardrail refusal. Not a suspicious prompt:
 "lunch, 12.50" is refused, and so is "describe this expense in two sentences".
-Availability and willingness are two different questions, and the framework
-only answers the first. Verify the on-device backend on real hardware; a green
-availability check in a simulator means nothing.
+The same prompts on a real iPhone 17 are answered on the first attempt. So those
+refusals are the simulator, not the model, and a green availability check in a
+simulator is worth nothing at all. Verify this backend on a device.
 
-**On real hardware the check is honest, and the answer can be permanent.** The
-same demo on an iPhone 17 running iOS 26.6.1 reports `.notEnabled` rather than
-pretending. What makes that worth writing down is *why*: Apple Intelligence
-requires the device language and the Siri language to match, and to be one of a
-supported set — which does not include Russian, Ukrainian, Polish, Greek,
-Hindi, Arabic or Hebrew, among others. So on a phone whose owner reads Russian,
-this feature is not "switched off pending onboarding". It is unavailable, and no
-amount of explaining where the toggle lives will change that.
+**What the real model returns is still not the value you asked for.** On that
+phone, asked for an `Expense`, Apple's on-device model wrapped its JSON in a
+Markdown code fence — in the typed call and in the stream both. Nothing in the
+prompt asked for that and nothing in the schema permits it. It decoded in one
+attempt because the library strips the fence before decoding, which is the
+entire job. Worth recording that the first thing the flagship on-device backend
+did was decorate its output, because the standing objection to a library like
+this one is "just ask the model for JSON".
 
-Which is the whole argument for treating `unavailableReason` as product input
-rather than an error path. `.notEnabled` looks like something you can talk the
-user into fixing. For a large share of the world's phones it is not.
+**On real hardware the availability check is honest — and what it reports is a
+product state, not a hardware verdict.** With the phone in Russian the same demo
+reports `.notEnabled`, and there is no toggle on the Settings screen to flip:
+Apple Intelligence requires the device language and the Siri language to match
+down to the regional variant, and to be one of a supported set, which does not
+include Russian, Ukrainian, Polish, Greek, Hindi, Arabic or Hebrew. Switching
+the phone to English is not enough on its own — with the region still set to
+Russia the device reads as "English (Russia)" against Siri's "English (United
+States)", they do not match, and the toggle stays hidden. Match them and the
+feature appears and works.
 
-That is also the accidental proof of the paragraph below. Each of those refusals
-cost exactly one call — `attempts: 0`, one named error — because a refusal never
-enters the repair loop. Had it, every one of them would have been three failed
-requests instead of one.
+So `.notEnabled` on such a phone does not mean "switched off pending
+onboarding", and it does not mean "never on this hardware". It means "not in the
+language this person reads their phone in" — a trade most of them will not make
+for one feature. That is the whole argument for treating `unavailableReason` as
+product input rather than an error path: it looks like something you can talk
+the user into fixing, and for a large share of the world's phones it is not.
+
+One more thing, seen while switching it on: between flipping the toggle and the
+model finishing its download, the backend reported `.notEnabled` rather than
+`.modelNotReady`. Whether the framework genuinely reports it that way or the
+value had been cached in the process, the advice is the same: read it at the
+moment you show the entry point, not at app launch, and do not hold on to the
+answer.
+
+That is also the accidental proof of the paragraph below. Each of those
+simulator refusals cost exactly one call — `attempts: 0`, one named error —
+because a refusal never enters the repair loop. Had it, every one of them would
+have been three failed requests instead of one.
 
 Check it once, before you show the entry point. Calling anyway is safe — you get a typed `FoundationModelError.unavailable(reason)` rather than an opaque framework failure — but by then the user has already tapped a button that was never going to work.
 
